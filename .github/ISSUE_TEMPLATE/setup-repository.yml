@@ -1,0 +1,73 @@
+name: "Setup Unit Test Generator"
+description: "Automatically configure unit test generator in your repository"
+title: "Setup Unit Test Generator Request"
+labels: ["repository-setup"]
+body:
+  - type: input
+    id: target_repo
+    attributes:
+      label: "Target Repository"
+      description: "Repository to setup unit test generator"
+      placeholder: "e.g., myorg/my-app"
+    validations:
+      required: true
+
+  - type: input
+    id: target_branch
+    attributes:
+      label: "Target Branch"
+      description: "Branch to create the setup PR against"
+      placeholder: "e.g., main"
+      value: "main"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: languages
+    attributes:
+      label: "Primary Languages"
+      description: "Select the main languages used in your repository"
+      multiple: true
+      options:
+        - C#
+        - Java
+        - JavaScript
+        - TypeScript
+        - Python
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: features
+    attributes:
+      label: "Features to Enable"
+      options:
+        - label: "Automatic test generation on PR"
+          checked: true
+        - label: "Issue-based test generation"
+          checked: true
+        - label: "Strict type checking"
+        - label: "Integration test support"
+        - label: "Performance test generation"
+
+  - type: textarea
+    id: custom_config
+    attributes:
+      label: "Custom Configuration (Optional)"
+      description: "Any custom settings for your repository"
+      placeholder: |
+        ai_settings:
+          temperature: 0.2
+        quality:
+          mock_external_calls: false
+        limits:
+          max_files_per_request: 20
+
+  - type: input
+    id: requester_email
+    attributes:
+      label: "Your Email"
+      description: "Email for setup completion notification"
+      placeholder: "user@company.com"
+    validations:
+      required: true

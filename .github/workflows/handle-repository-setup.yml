@@ -1,0 +1,489 @@
+name: Handle Repository Setup Request
+
+on:
+  issues:
+    types: [opened, reopened]
+  workflow_dispatch:
+    inputs:
+      target_repo:
+        description: "Target Repository"
+        required: true
+      target_branch:
+        description: "Target Branch"
+        required: true
+        default: "main"
+      languages:
+        description: "Languages (comma-separated)"
+        required: true
+      features:
+        description: "Features to enable"
+        required: false
+      custom_config:
+        description: "Custom configuration"
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  setup-repository:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.issue.labels.*.name, 'repository-setup')
+    
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
+        
+      - name: Parse issue data
+        id: parse-issue
+        if: github.event_name != 'workflow_dispatch'
+        shell: bash
+        run: |
+          # Parse the issue body safely
+          issue_body="${{ github.event.issue.body }}"
+          
+          # Extract fields using safer parsing
+          target_repo=$(echo "$issue_body" | grep -A1 "### Target Repository" | tail -1 | xargs)
+          target_branch=$(echo "$issue_body" | grep -A1 "### Target Branch" | tail -1 | xargs)
+          languages=$(echo "$issue_body" | grep -A5 "### Primary Languages" | grep "^- \[x\]" | sed 's/^- \[x\] //' | tr '\n' ',' | sed 's/,$//')
+          
+          # Extract features
+          features=$(echo "$issue_body" | grep -A10 "### Features to Enable" | grep "^- \[x\]" | sed 's/^- \[x\] //' | tr '\n' ',' | sed 's/,$//')
+          
+          # Extract custom config (between code blocks)
+          custom_config=$(echo "$issue_body" | sed -n '/```yaml/,/```/p' | grep -v '```' || echo "")
+          
+          echo "target_repo=$target_repo" >> $GITHUB_OUTPUT
+          echo "target_branch=$target_branch" >> $GITHUB_OUTPUT
+          echo "languages=$languages" >> $GITHUB_OUTPUT
+          echo "features=$features" >> $GITHUB_OUTPUT
+          echo "custom_config<<EOF" >> $GITHUB_OUTPUT
+          echo "$custom_config" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Set variables
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "TARGET_REPO=${{ github.event.inputs.target_repo }}" >> $GITHUB_ENV
+            echo "TARGET_BRANCH=${{ github.event.inputs.target_branch }}" >> $GITHUB_ENV
+            echo "LANGUAGES=${{ github.event.inputs.languages }}" >> $GITHUB_ENV
+            echo "FEATURES=${{ github.event.inputs.features }}" >> $GITHUB_ENV
+            echo "CUSTOM_CONFIG=${{ github.event.inputs.custom_config }}" >> $GITHUB_ENV
+          else
+            echo "TARGET_REPO=${{ steps.parse-issue.outputs.target_repo }}" >> $GITHUB_ENV
+            echo "TARGET_BRANCH=${{ steps.parse-issue.outputs.target_branch }}" >> $GITHUB_ENV
+            echo "LANGUAGES=${{ steps.parse-issue.outputs.languages }}" >> $GITHUB_ENV
+            echo "FEATURES=${{ steps.parse-issue.outputs.features }}" >> $GITHUB_ENV
+            echo "CUSTOM_CONFIG<<EOF" >> $GITHUB_ENV
+            echo "${{ steps.parse-issue.outputs.custom_config }}" >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
+          fi
+
+      - name: Generate GitHub App Token
+        id: generate-token
+        uses: actions/create-github-app-token@31662d64faa4bf014ba2066b4c75bb6b5e6c0898 #v1.11.0
+        with:
+          app-id: ${{ secrets.UNIT_TEST_APP_ID }}
+          private-key: ${{ secrets.UNIT_TEST_APP_KEY }}
+          owner: ${{ env.TARGET_REPO }}
+
+      - name: Checkout target repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
+        with:
+          repository: ${{ env.TARGET_REPO }}
+          token: ${{ steps.generate-token.outputs.token }}
+          ref: ${{ env.TARGET_BRANCH }}
+          path: target_repo
+
+      - name: Setup Node.js
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af #v4.1.0
+        with:
+          node-version: '20'
+
+      - name: Generate configuration files
+        shell: bash
+        env:
+          LANGUAGES: ${{ env.LANGUAGES }}
+          FEATURES: ${{ env.FEATURES }}
+          CUSTOM_CONFIG: ${{ env.CUSTOM_CONFIG }}
+        run: |
+          # Create directories
+          mkdir -p target_repo/.github/workflows
+          mkdir -p target_repo/.github/scripts
+          mkdir -p target_repo/.github/ISSUE_TEMPLATE
+
+          # Generate unit-test-generator.yml
+          node << 'EOF'
+          const fs = require('fs');
+          const yaml = require('js-yaml');
+          
+          const languages = process.env.LANGUAGES.split(',').map(l => l.trim().toLowerCase());
+          const features = process.env.FEATURES.split(',').map(f => f.trim());
+          const customConfig = process.env.CUSTOM_CONFIG;
+          
+          // Base configuration
+          const config = {
+            enabled: true,
+            languages: {},
+            ai_settings: {
+              model: "gpt-4",
+              temperature: 0.1,
+              max_tokens: 4000,
+              seed: 12345
+            },
+            limits: {
+              max_files_per_request: 50,
+              min_file_size_lines: 5,
+              max_file_size_lines: 1000
+            },
+            quality: {
+              require_docstrings: true,
+              mock_external_calls: true,
+              include_edge_cases: true,
+              generate_integration_tests: features.includes('Integration test support')
+            }
+          };
+
+          // Add language configurations
+          const languageConfigs = {
+            'c#': {
+              framework: "xunit",
+              file_extensions: [".cs"],
+              test_directory: "Tests",
+              test_suffix: ".Tests.cs",
+              exclude_patterns: ["**/*Test*.cs", "**/Tests/**", "**/bin/**", "**/obj/**"]
+            },
+            'java': {
+              framework: "junit5",
+              file_extensions: [".java"],
+              test_directory: "src/test/java",
+              test_suffix: "Test.java",
+              exclude_patterns: ["**/test/**", "**/*Test.java", "**/target/**"]
+            },
+            'javascript': {
+              framework: "jest",
+              file_extensions: [".js"],
+              test_directory: "__tests__",
+              test_suffix: ".test.js",
+              exclude_patterns: ["**/*.test.js", "**/*.spec.js", "**/node_modules/**"]
+            },
+            'typescript': {
+              framework: "jest",
+              file_extensions: [".ts", ".tsx"],
+              test_directory: "__tests__",
+              test_suffix: ".test.ts",
+              exclude_patterns: ["**/*.test.ts", "**/*.spec.ts", "**/node_modules/**", "**/dist/**"]
+            },
+            'python': {
+              framework: "pytest",
+              file_extensions: [".py"],
+              test_directory: "tests",
+              test_suffix: "_test.py",
+              exclude_patterns: ["**/*test*.py", "**/tests/**", "**/__pycache__/**"]
+            }
+          };
+
+          languages.forEach(lang => {
+            if (languageConfigs[lang]) {
+              config.languages[lang] = languageConfigs[lang];
+            }
+          });
+
+          // Apply custom configuration
+          if (customConfig && customConfig.trim()) {
+            try {
+              const custom = yaml.load(customConfig);
+              Object.assign(config, custom);
+            } catch (e) {
+              console.warn('Invalid custom configuration, using defaults');
+            }
+          }
+
+          // Write configuration file
+          const yamlStr = yaml.dump(config, {
+            flowLevel: -1,
+            indent: 2,
+            quotingType: '"',
+            forceQuotes: false
+          });
+
+          fs.writeFileSync('target_repo/.github/unit-test-generator.yml', 
+            '# Unit Test Generator Configuration\n' +
+            '# Generated automatically by Unit Test Generator App\n\n' +
+            yamlStr
+          );
+          EOF
+
+      - name: Copy workflow files
+        shell: bash
+        env:
+          FEATURES: ${{ env.FEATURES }}
+        run: |
+          # Copy main workflow if automatic PR generation is enabled
+          if echo "$FEATURES" | grep -q "Automatic test generation on PR"; then
+            cp .github/workflows/unit-test-generator.yml target_repo/.github/workflows/
+          fi
+
+          # Copy issue handling workflow if issue-based generation is enabled
+          if echo "$FEATURES" | grep -q "Issue-based test generation"; then
+            cp .github/workflows/handle-test-generation.yml target_repo/.github/workflows/
+            cp .github/ISSUE_TEMPLATE/generate-tests.yml target_repo/.github/ISSUE_TEMPLATE/
+          fi
+
+          # Copy the generate tests script and action
+          cp -r .github/scripts/generate-tests.js target_repo/.github/scripts/
+          cp -r .github/actions/generate-tests target_repo/.github/actions/
+
+      - name: Create package.json
+        shell: bash
+        run: |
+          cat > target_repo/package.json << 'EOF'
+          {
+            "name": "unit-test-generator-setup",
+            "version": "1.0.0",
+            "description": "Dependencies for AI unit test generation",
+            "dependencies": {
+              "openai": "^4.20.0",
+              "@octokit/rest": "^20.0.0",
+              "js-yaml": "^4.1.0"
+            },
+            "engines": {
+              "node": ">=18"
+            }
+          }
+          EOF
+
+      - name: Create setup documentation
+        shell: bash
+        env:
+          TARGET_REPO: ${{ env.TARGET_REPO }}
+          LANGUAGES: ${{ env.LANGUAGES }}
+          FEATURES: ${{ env.FEATURES }}
+        run: |
+          cat > target_repo/UNIT_TEST_GENERATOR_SETUP.md << EOF
+          # Unit Test Generator Setup
+
+          This repository has been automatically configured with the AI Unit Test Generator.
+
+          ## Setup Date
+          $(date '+%Y-%m-%d %H:%M:%S UTC')
+
+          ## Configuration Summary
+
+          ### Languages Configured
+          $(echo "$LANGUAGES" | tr ',' '\n' | sed 's/^/- /')
+
+          ### Features Enabled
+          $(echo "$FEATURES" | tr ',' '\n' | sed 's/^/- /')
+
+          ## Required Secrets
+
+          To complete the setup, add these secrets to your repository:
+
+          1. **OPENAI_API_KEY**: Your OpenAI API key for test generation
+             - Go to Settings → Secrets and variables → Actions
+             - Add new repository secret: OPENAI_API_KEY
+
+          ## How to Use
+
+          ### Automatic Test Generation
+          - Tests are automatically generated when you create or update pull requests
+          - The workflow analyzes changed files and generates appropriate tests
+
+          ### Manual Test Generation
+          - Create an issue using the "Generate Unit Tests" template
+          - Fill out the form with your requirements
+          - The system will create a PR with generated tests
+
+          ## Configuration
+
+          The configuration is stored in \`.github/unit-test-generator.yml\`.
+          You can customize:
+          - AI model settings
+          - Language-specific frameworks
+          - Quality requirements
+          - Processing limits
+
+          ## Support
+
+          - 📖 Documentation: [Unit Test Generator Repository](https://github.com/Dave-WestNeu/unit_tests_on_pr)
+          - 🐛 Issues: [Report an Issue](https://github.com/Dave-WestNeu/unit_tests_on_pr/issues)
+          EOF
+
+      - name: Create pull request
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+          TARGET_REPO: ${{ env.TARGET_REPO }}
+          TARGET_BRANCH: ${{ env.TARGET_BRANCH }}
+          LANGUAGES: ${{ env.LANGUAGES }}
+          FEATURES: ${{ env.FEATURES }}
+        run: |
+          cd target_repo
+          
+          # Configure git
+          git config user.name "Unit Test Generator Bot"
+          git config user.email "unit-test-bot@github.com"
+          
+          # Create setup branch
+          setup_branch="unit-test-generator-setup-$(date +%Y%m%d-%H%M%S)"
+          git checkout -b "$setup_branch"
+          
+          # Add all files
+          git add .
+          
+          # Check if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          
+          # Commit changes
+          git commit -m "🤖 Setup Unit Test Generator
+
+          Automated setup includes:
+          - Configuration for languages: $LANGUAGES
+          - Features: $FEATURES
+          - Workflow files and scripts
+          - Issue templates and documentation
+
+          Next steps:
+          1. Add OPENAI_API_KEY to repository secrets
+          2. Review and merge this PR
+          3. Start creating pull requests to generate tests!"
+          
+          # Push branch
+          git push origin "$setup_branch"
+          
+          # Create PR using GitHub CLI or API
+          cat > pr_body.md << 'PRBODY'
+          ## 🤖 Automated Unit Test Generator Setup
+
+          This PR automatically configures your repository with AI-powered unit test generation capabilities.
+
+          ### 📦 What's Included
+
+          #### Configuration Files
+          - `.github/unit-test-generator.yml` - Main configuration
+          - `package.json` - Node.js dependencies
+
+          #### Workflow Files
+          PRBODY
+          
+          if echo "$FEATURES" | grep -q "Automatic test generation on PR"; then
+            echo "- \`.github/workflows/unit-test-generator.yml\` - Automatic test generation on PRs" >> pr_body.md
+          fi
+          
+          if echo "$FEATURES" | grep -q "Issue-based test generation"; then
+            echo "- \`.github/workflows/handle-test-generation.yml\` - Issue-based test generation" >> pr_body.md
+            echo "- \`.github/ISSUE_TEMPLATE/generate-tests.yml\` - Issue template" >> pr_body.md
+          fi
+          
+          cat >> pr_body.md << 'PRBODY'
+
+          #### Scripts and Actions
+          - `.github/scripts/generate-tests.js` - Test generation logic
+          - `.github/actions/generate-tests/` - Composite action
+
+          #### Documentation
+          - `UNIT_TEST_GENERATOR_SETUP.md` - Setup instructions and usage guide
+
+          ### 🔧 Languages Configured
+          PRBODY
+          
+          echo "$LANGUAGES" | tr ',' '\n' | sed 's/^/- /' >> pr_body.md
+          
+          cat >> pr_body.md << 'PRBODY'
+
+          ### ✨ Features Enabled
+          PRBODY
+          
+          echo "$FEATURES" | tr ',' '\n' | sed 's/^/- /' >> pr_body.md
+          
+          cat >> pr_body.md << 'PRBODY'
+
+          ### 🚀 Next Steps
+
+          1. **Add Required Secret**: 
+             - Go to Settings → Secrets and variables → Actions
+             - Add `OPENAI_API_KEY` with your OpenAI API key
+
+          2. **Review Configuration**:
+             - Check `.github/unit-test-generator.yml` 
+             - Customize settings if needed
+
+          3. **Test the Setup**:
+             - Merge this PR
+             - Create a test PR with code changes
+             - Watch tests generate automatically!
+
+          ### 🆘 Need Help?
+
+          - 📖 [Full Documentation](https://github.com/Dave-WestNeu/unit_tests_on_pr)
+          - 🐛 [Report Issues](https://github.com/Dave-WestNeu/unit_tests_on_pr/issues)
+
+          ---
+          
+          Generated by [Unit Test Generator App](https://github.com/Dave-WestNeu/unit_tests_on_pr)
+          PRBODY
+          
+          # Create PR via GitHub API
+          pr_response=$(curl -s -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/$TARGET_REPO/pulls" \
+            -d "{
+              \"title\": \"🤖 Setup Unit Test Generator\",
+              \"head\": \"$setup_branch\",
+              \"base\": \"$TARGET_BRANCH\",
+              \"body\": $(cat pr_body.md | jq -Rs .)
+            }")
+          
+          pr_number=$(echo "$pr_response" | jq -r '.number // empty')
+          pr_url=$(echo "$pr_response" | jq -r '.html_url // empty')
+          
+          if [ -n "$pr_number" ] && [ "$pr_number" != "null" ]; then
+            echo "PR_NUMBER=$pr_number" >> $GITHUB_ENV
+            echo "PR_URL=$pr_url" >> $GITHUB_ENV
+            echo "✅ Created PR #$pr_number: $pr_url"
+          else
+            echo "❌ Failed to create PR"
+            echo "Response: $pr_response"
+            exit 1
+          fi
+
+      - name: Update issue
+        if: github.event_name != 'workflow_dispatch'
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea #v7.0.1
+        env:
+          PR_NUMBER: ${{ env.PR_NUMBER }}
+          PR_URL: ${{ env.PR_URL }}
+          TARGET_REPO: ${{ env.TARGET_REPO }}
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: context.issue.number,
+              body: `✅ **Unit Test Generator setup completed!**
+
+            📋 **Setup Summary:**
+            - Repository: **${process.env.TARGET_REPO}**
+            - Pull Request: **#${process.env.PR_NUMBER}**
+            - PR URL: ${process.env.PR_URL}
+
+            🚀 **Next Steps:**
+            1. Review and merge PR #${process.env.PR_NUMBER}
+            2. Add \`OPENAI_API_KEY\` to repository secrets
+            3. Start creating pull requests to generate tests automatically!
+
+            📖 **Documentation:** [Unit Test Generator Setup Guide](${process.env.PR_URL.replace('/pull/', '/blob/')}/UNIT_TEST_GENERATOR_SETUP.md)`
+            });
+            
+            await github.rest.issues.update({
+              ...context.repo,
+              issue_number: context.issue.number,
+              state: "closed"
+            });
