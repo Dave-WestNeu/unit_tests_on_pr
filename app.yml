@@ -1,0 +1,15 @@
+# app.yml
+name: "Unit Test Generator"
+description: "AI-powered unit test generation for pull requests"
+url: "https://github.com/Dave-WestNeu/unit_tests_on_pr"
+setup_url: "https://github.com/Dave-WestNeu/unit_tests_on_pr/blob/main/README.md"
+public: true
+default_permissions:
+  contents: write
+  pull_requests: write
+  checks: write
+  actions: read
+  issues: read
+default_events:
+  - issues
+  - pull_request

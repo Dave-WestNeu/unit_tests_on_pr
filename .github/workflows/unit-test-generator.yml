@@ -1,0 +1,65 @@
+name: Unit Test Generator
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: write
+
+jobs:
+  generate-tests:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v41
+        with:
+          files: |
+            **/*.cs
+            **/*.java
+            **/*.js
+            **/*.ts
+            **/*.py
+          files_ignore: |
+            **/*test*
+            **/*Test*
+            **/*spec*
+            
+      - name: Generate Unit Tests
+        if: steps.changed-files.outputs.any_changed == 'true'
+        uses: ./.github/actions/generate-tests
+        with:
+          changed-files: ${{ steps.changed-files.outputs.all_changed_files }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          
+      - name: Create PR Comment
+        if: steps.changed-files.outputs.any_changed == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Read generated test summary
+            let summary = 'No tests generated';
+            if (fs.existsSync('test-generation-summary.md')) {
+              summary = fs.readFileSync('test-generation-summary.md', 'utf8');
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🧪 Unit Test Generation Results\n\n${summary}`
+            });

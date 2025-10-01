@@ -1,0 +1,29 @@
+{
+  "name": "unit-test-generator",
+  "version": "1.0.0",
+  "description": "AI-powered unit test generation for pull requests",
+  "main": ".github/scripts/generate-tests.js",
+  "scripts": {
+    "test": "node .github/scripts/generate-tests.js --test",
+    "lint": "eslint .github/scripts/",
+    "format": "prettier --write .github/scripts/"
+  },
+  "dependencies": {
+    "openai": "^4.20.0",
+    "@octokit/rest": "^20.0.0",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/unit_tests_on_pr"
+  },
+  "keywords": ["github-app", "unit-tests", "ai", "automation"],
+  "license": "MIT"
+}

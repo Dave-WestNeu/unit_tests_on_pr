@@ -1,0 +1,76 @@
+# .github/unit-test-generator.yml
+enabled: true
+
+# Supported languages and their configurations
+languages:
+  csharp:
+    framework: "xunit"
+    file_extensions: [".cs"]
+    test_directory: "Tests"
+    test_suffix: ".Tests.cs"
+    exclude_patterns:
+      - "**/*Test*.cs"
+      - "**/Tests/**"
+      - "**/bin/**"
+      - "**/obj/**"
+  
+  java:
+    framework: "junit5"
+    file_extensions: [".java"]
+    test_directory: "src/test/java"
+    test_suffix: "Test.java"
+    exclude_patterns:
+      - "**/test/**"
+      - "**/*Test.java"
+      - "**/target/**"
+  
+  javascript:
+    framework: "jest"
+    file_extensions: [".js"]
+    test_directory: "__tests__"
+    test_suffix: ".test.js"
+    exclude_patterns:
+      - "**/*.test.js"
+      - "**/*.spec.js"
+      - "**/node_modules/**"
+  
+  typescript:
+    framework: "jest"
+    file_extensions: [".ts", ".tsx"]
+    test_directory: "__tests__"
+    test_suffix: ".test.ts"
+    exclude_patterns:
+      - "**/*.test.ts"
+      - "**/*.spec.ts"
+      - "**/node_modules/**"
+      - "**/dist/**"
+  
+  python:
+    framework: "pytest"
+    file_extensions: [".py"]
+    test_directory: "tests"
+    test_suffix: "_test.py"
+    exclude_patterns:
+      - "**/*test*.py"
+      - "**/tests/**"
+      - "**/__pycache__/**"
+
+# AI settings
+ai_settings:
+  model: "gpt-4"
+  temperature: 0.1
+  max_tokens: 4000
+  seed: 12345
+
+# Processing limits
+limits:
+  max_files_per_request: 50
+  min_file_size_lines: 5
+  max_file_size_lines: 1000
+
+# Quality settings
+quality:
+  require_docstrings: true
+  mock_external_calls: true
+  include_edge_cases: true
+  generate_integration_tests: false

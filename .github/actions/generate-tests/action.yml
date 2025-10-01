@@ -1,0 +1,49 @@
+name: 'Generate Unit Tests'
+description: 'Generates unit tests for changed source files'
+inputs:
+  changed-files:
+    description: 'Space-separated list of changed files'
+    required: true
+  openai-api-key:
+    description: 'OpenAI API key for test generation'
+    required: true
+  test-framework:
+    description: 'Preferred test framework'
+    required: false
+    default: 'auto'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        
+    - name: Install dependencies
+      shell: bash
+      run: |
+        npm install -g typescript
+        npm install openai @octokit/rest
+        
+    - name: Generate Tests
+      shell: bash
+      env:
+        OPENAI_API_KEY: ${{ inputs.openai-api-key }}
+        CHANGED_FILES: ${{ inputs.changed-files }}
+        TEST_FRAMEWORK: ${{ inputs.test-framework }}
+      run: |
+        node ${{ github.action_path }}/generate-tests.js
+        
+    - name: Commit generated tests
+      shell: bash
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "Unit Test Generator"
+        git add -A
+        if git diff --staged --quiet; then
+          echo "No tests to commit"
+        else
+          git commit -m "🧪 Auto-generate unit tests for PR changes"
+          git push
+        fi
