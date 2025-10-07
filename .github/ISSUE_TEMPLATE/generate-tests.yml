@@ -3,7 +3,7 @@ name: "Generate Unit Tests"
 description: "Request AI-generated unit tests for your repository"
 title: "Unit Test Generation Request"
 labels: ["test-generation"]
-assignees: ["copilot"]
+assignees: ["@copilot"]
 body:
   - type: input
     id: target_repo
