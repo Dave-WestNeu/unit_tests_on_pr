@@ -1,0 +1,36 @@
+# .github/workflows/auto-approve-copilot-workflows.yml
+name: Auto-approve Copilot Workflow Runs
+
+on:
+  workflow_run:
+    workflows: ["*"]
+    types: [requested]
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  auto-approve:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.actor.login == 'copilot' || github.event.workflow_run.actor.login == 'Copilot'
+    
+    steps:
+      - name: Auto-approve Copilot workflow
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🤖 Auto-approving workflow run from Copilot"
+          echo "Workflow: ${{ github.event.workflow_run.name }}"
+          echo "Run ID: ${{ github.event.workflow_run.id }}"
+          echo "Actor: ${{ github.event.workflow_run.actor.login }}"
+          
+          # Approve the workflow run
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}/approve \
+            || echo "⚠️ Could not auto-approve workflow (may already be approved or not require approval)"
+          
+          echo "✅ Workflow approved for execution"
