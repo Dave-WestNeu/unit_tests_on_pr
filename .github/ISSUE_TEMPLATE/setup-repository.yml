@@ -9,7 +9,7 @@ body:
     id: target_repo
     attributes:
       label: "Target Repository"
-      description: "Repository to setup unit test generator"
+      description: "Repository to setup unit test generator (creates agent config, workflow, and configures permissions)"
       placeholder: "e.g., myorg/my-app"
     validations:
       required: true
@@ -23,15 +23,6 @@ body:
       value: "main"
     validations:
       required: false
-
-  - type: checkboxes
-    id: setup_options
-    attributes:
-      label: "Setup Options"
-      options:
-        - label: "Create agent configuration file"
-        - label: "Add test generation workflow"
-        - label: "Configure GitHub Actions permissions"
 
   - type: textarea
     id: additional_notes
