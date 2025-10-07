@@ -23,10 +23,3 @@ body:
       value: "main"
     validations:
       required: false
-
-  - type: textarea
-    id: additional_notes
-    attributes:
-      label: "Additional Notes (Optional)"
-      description: "Any special requirements or notes for the setup"
-      placeholder: "e.g., Specific test frameworks, custom configurations"
