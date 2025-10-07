@@ -51,6 +51,15 @@ jobs:
           echo "target_repo=$target_repo" >> $GITHUB_OUTPUT
           echo "target_branch=$target_branch" >> $GITHUB_OUTPUT
 
+      - name: Assign issue to Copilot
+        if: github.event_name != 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue edit ${{ github.event.issue.number }} \
+            --repo ${{ github.repository }} \
+            --add-assignee copilot || echo "⚠️ Could not assign to Copilot (may not be a collaborator)"
+
       - name: Set variables and validate
         shell: bash
         run: |

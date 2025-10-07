@@ -4,8 +4,6 @@ description: "Automatically configure unit test generator in your repository"
 title: "Setup Unit Test Generator Request"
 labels: 
   - repository-setup
-assignees: 
-  - copilot
 body:
   - type: input
     id: target_repo
