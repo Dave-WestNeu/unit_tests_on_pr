@@ -3,6 +3,7 @@ name: "Setup Unit Test Generator"
 description: "Automatically configure unit test generator in your repository"
 title: "Setup Unit Test Generator Request"
 labels: ["repository-setup"]
+assignees: ["copilot"]
 body:
   - type: input
     id: target_repo
@@ -22,3 +23,19 @@ body:
       value: ""
     validations:
       required: false
+
+  - type: checkboxes
+    id: setup_options
+    attributes:
+      label: "Setup Options"
+      options:
+        - label: "Create agent configuration file"
+        - label: "Add test generation workflow"
+        - label: "Configure GitHub Actions permissions"
+
+  - type: textarea
+    id: additional_notes
+    attributes:
+      label: "Additional Notes (Optional)"
+      description: "Any special requirements or notes for the setup"
+      placeholder: "e.g., Specific test frameworks, custom configurations"
