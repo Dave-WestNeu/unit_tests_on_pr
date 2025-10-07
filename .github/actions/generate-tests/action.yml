@@ -3,7 +3,7 @@ description: 'Generates unit tests for changed source files'
 inputs:
   changed-files:
     description: 'Space-separated list of changed files'
-    required: true
+    required: false
   openai-api-key:
     description: 'OpenAI API key for test generation'
     required: true
@@ -11,6 +11,18 @@ inputs:
     description: 'Preferred test framework'
     required: false
     default: 'auto'
+  target-repo:
+    description: 'Target repository for test generation'
+    required: false
+  target-branch:
+    description: 'Target branch for test generation'
+    required: false
+  languages:
+    description: 'Languages to generate tests for (comma-separated)'
+    required: false
+  github-token:
+    description: 'GitHub token for API access'
+    required: false
 
 runs:
   using: 'composite'
@@ -24,7 +36,7 @@ runs:
       shell: bash
       run: |
         npm install -g typescript
-        npm install openai @octokit/rest
+        npm install openai @octokit/rest js-yaml
         
     - name: Generate Tests
       shell: bash
@@ -32,6 +44,10 @@ runs:
         OPENAI_API_KEY: ${{ inputs.openai-api-key }}
         CHANGED_FILES: ${{ inputs.changed-files }}
         TEST_FRAMEWORK: ${{ inputs.test-framework }}
+        TARGET_REPO: ${{ inputs.target-repo }}
+        TARGET_BRANCH: ${{ inputs.target-branch }}
+        LANGUAGES: ${{ inputs.languages }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
       run: |
         node ${{ github.action_path }}/generate-tests.js
         

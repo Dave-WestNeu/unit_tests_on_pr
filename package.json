@@ -9,9 +9,9 @@
     "format": "prettier --write .github/scripts/"
   },
   "dependencies": {
-    "openai": "^4.20.0",
     "@octokit/rest": "^20.0.0",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "openai": "^4.20.0"
   },
   "devDependencies": {
     "eslint": "^8.0.0",
@@ -24,6 +24,11 @@
     "type": "git",
     "url": "https://github.com/yourusername/unit_tests_on_pr"
   },
-  "keywords": ["github-app", "unit-tests", "ai", "automation"],
+  "keywords": [
+    "github-app",
+    "unit-tests",
+    "ai",
+    "automation"
+  ],
   "license": "MIT"
 }

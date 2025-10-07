@@ -174,7 +174,7 @@ jobs:
 
           # Create directories
           mkdir -p target_repo/.github/workflows
-          mkdir -p target_repo/.github/scripts
+          mkdir -p target_repo/.github/actions
           mkdir -p target_repo/.github/ISSUE_TEMPLATE
 
           # Generate unit-test-generator.yml using Node.js
@@ -287,9 +287,8 @@ jobs:
           echo "✅ Copied issue-based generation files"
 
           # Copy scripts and actions
-          cp -r .github/scripts/generate-tests.js target_repo/.github/scripts/
           cp -r .github/actions/generate-tests target_repo/.github/actions/
-          echo "✅ Copied scripts and actions"
+          echo "✅ Copied actions"
 
       - name: Create package.json
         shell: bash
@@ -339,8 +338,7 @@ jobs:
           - \`.github/workflows/handle-test-generation.yml\` - Issue-based test generation
 
           ### Scripts and Actions
-          - \`.github/scripts/generate-tests.js\` - Test generation logic
-          - \`.github/actions/generate-tests/\` - Composite action for test generation
+          - \`.github/actions/generate-tests/\` - Composite action for test generation (includes test generation logic)
 
           ### Issue Templates
           - \`.github/ISSUE_TEMPLATE/generate-tests.yml\` - Manual test generation requests
