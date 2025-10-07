@@ -7,7 +7,7 @@
 1. **Click the badge above** 
 2. **Enter your repository name** (e.g., `myorg/my-app`)
 3. **Submit the issue**
-4. **Add your OpenAI API key** to repository secrets as `OPENAI_API_KEY`
+4. **Assign the Copilot SWE agent** as a collaborator with write access to your repository
 5. **Merge the setup PR** when it's created
 6. **Done!** ✨
 
@@ -17,6 +17,7 @@
 - ✅ **Smart Defaults**: Uses best-practice configurations for each language  
 - ✅ **Workflow Setup**: Installs all necessary workflows and scripts
 - ✅ **Documentation**: Creates setup guide and usage instructions
+- ✅ **Copilot SWE Agent**: Generates and maintains tests for your PRs—no OpenAI API key required!
 - ✅ **Ready to Go**: Start creating PRs and watch tests generate!
 
 ## Supported Languages (Auto-Detected)
@@ -29,4 +30,4 @@
 
 ## Advanced Usage (Optional)
 
-Want to customize? After setup, edit `.github/unit-test-generator.yml` in your repository.
+Want to customize? After setup, edit `.github/copilot/agent-config.yml` in your repository to control agent behavior, frameworks, and test generation style.

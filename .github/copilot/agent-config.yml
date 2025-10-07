@@ -1,0 +1,15 @@
+enabled: true
+include_patterns:
+  - "**/*.cs"
+  - "**/*.java"
+  - "**/*.py"
+frameworks:
+  csharp: "xunit"
+  java: "junit5"
+  python: "pytest"
+agent:
+  type: "copilot-swe"
+  instructions: ".github/copilot-instructions.md"
+  test_generation:
+    style: "unit-testing"
+    coverage_target: 80

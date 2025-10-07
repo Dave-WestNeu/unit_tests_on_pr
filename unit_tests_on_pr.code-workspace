@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"name": "unit_tests_on_pr",
+			"path": "."
+		},
+		{
+			"name": "sample_py_needs_tests",
+			"path": "../sample_py_needs_tests"
+		}
+	],
+	"settings": {}
+}
