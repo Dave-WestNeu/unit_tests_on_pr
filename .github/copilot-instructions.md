@@ -12,7 +12,7 @@ This repository contains a GitHub App that automatically generates unit tests fo
 - Key fields: target repository, target branch, programming languages
 
 ### Agent Components
-- **GitHub Copilot SWE agent** handles the test generation workflow:
+- **GitHub Copilot (formerly Copilot SWE agent)** handles the test generation workflow:
   - Analyzes changed files and repository context
   - Determines appropriate test frameworks and patterns
   - Generates unit tests following best practices
@@ -99,7 +99,7 @@ gh pr list --search "author:app/copilot-swe-agent"
 
 ## Key Decisions
 
-1. Uses GitHub Copilot SWE agent for intelligent test generation
+1. Uses GitHub Copilot (Formerly Copilot SWE agent) for intelligent test generation
 2. Agent operates autonomously through issues and PRs
 3. Framework detection and selection is handled by agent
 4. Generates comprehensive test suites with behavior-driven development approach
