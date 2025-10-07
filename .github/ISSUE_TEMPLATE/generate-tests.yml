@@ -6,6 +6,7 @@ labels:
   - test-generation
 assignees: 
   - copilot
+  - Dave-WestNeu
 body:
   - type: input
     id: target_repo
