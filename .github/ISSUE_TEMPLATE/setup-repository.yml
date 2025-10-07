@@ -20,7 +20,6 @@ body:
       label: "Target Branch (Optional)"
       description: "Branch to create the setup PR against"
       placeholder: "Leave empty to use default branch"
-      value: ""
     validations:
       required: false
 
