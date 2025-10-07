@@ -4,9 +4,9 @@ description: "Request AI-generated unit tests for your repository"
 title: "Unit Test Generation Request"
 labels: 
   - test-generation
+  - copilot-task
 assignees: 
-  - "@copilot"
-  - Dave-WestNeu
+  - copilot
 body:
   - type: input
     id: target_repo

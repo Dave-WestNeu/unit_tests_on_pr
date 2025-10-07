@@ -5,8 +5,7 @@ title: "Setup Unit Test Generator Request"
 labels: 
   - repository-setup
 assignees: 
-  - "@copilot"
-  - Dave-WestNeu
+  - copilot
 body:
   - type: input
     id: target_repo
