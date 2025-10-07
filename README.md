@@ -1,6 +1,6 @@
 # Unit Test Generator
 
-[![One-Click Setup](https://img.shields.io/badge/Setup-One%20Click-brightgreen?style=for-the-badge&logo=github)](https://github.com/Dave-WestNeu/unit_tests_on_pr/issues/new?template=setup-repository.yml&title=Setup%20Unit%20Test%20Generator%20Request)
+[![One-Click Setup](https://img.shields.io/badge/Setup-One%20Click-brightgreen?style=for-the-badge&logo=github)](https://github.com/Dave-WestNeu/unit_tests_on_pr/issues/new?template=setup-repository.yml)
 
 ## 🚀 Super Simple Setup
 
