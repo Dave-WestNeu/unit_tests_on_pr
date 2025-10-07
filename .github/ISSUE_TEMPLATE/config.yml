@@ -1,0 +1,12 @@
+# .github/ISSUE_TEMPLATE/config.yml
+blank_issues_enabled: false
+contact_links:
+  - name: 🤖 Generate Unit Tests (Automated)
+    url: https://github.com/Dave-WestNeu/unit_tests_on_pr/issues/new?template=generate-tests.yml
+    about: Automatically generate unit tests for your repository using AI
+  - name: ⚙️ Repository Setup
+    url: https://github.com/Dave-WestNeu/unit_tests_on_pr/issues/new?template=setup-repository.yml
+    about: One-time setup to configure unit test generation in your repository
+  - name: 📋 General Issue
+    url: https://github.com/Dave-WestNeu/unit_tests_on_pr/issues/new
+    about: Report a bug or request a feature for the unit test generator
