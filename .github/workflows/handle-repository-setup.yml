@@ -176,6 +176,7 @@ jobs:
           mkdir -p target_repo/.github/workflows
           mkdir -p target_repo/.github/actions
           mkdir -p target_repo/.github/ISSUE_TEMPLATE
+          mkdir -p target_repo/.github/copilot
 
           # Generate unit-test-generator.yml using Node.js
           node << 'EOF'
@@ -272,6 +273,105 @@ jobs:
           console.log('✅ Generated unit-test-generator.yml');
           EOF
 
+      - name: Generate Copilot agent configuration
+        shell: bash
+        env:
+          DETECTED_LANGUAGES: ${{ env.DETECTED_LANGUAGES }}
+          TARGET_REPO: ${{ env.TARGET_REPO }}
+        run: |
+          echo "📝 Generating Copilot agent configuration..."
+
+          # Generate agent-config.yml using Node.js
+          node << 'EOF'
+          const fs = require('fs');
+          const yaml = require('js-yaml');
+          
+          const languages = process.env.DETECTED_LANGUAGES.split(',').map(l => l.trim());
+          
+          // Language configurations for agent
+          const frameworkMap = {
+            'csharp': 'xunit',
+            'java': 'junit5',
+            'javascript': 'jest',
+            'typescript': 'jest',
+            'python': 'pytest'
+          };
+
+          const extensionMap = {
+            'csharp': '**/*.cs',
+            'java': '**/*.java',
+            'javascript': '**/*.js',
+            'typescript': '**/*.ts',
+            'python': '**/*.py'
+          };
+
+          // Build agent configuration
+          const agentConfig = {
+            enabled: true,
+            include_patterns: languages.map(lang => extensionMap[lang]).filter(Boolean),
+            frameworks: {},
+            agent: {
+              type: "copilot-swe",
+              instructions: ".github/copilot-instructions.md",
+              test_generation: {
+                style: "unit-testing",
+                coverage_target: 80
+              }
+            }
+          };
+
+          // Add frameworks for detected languages
+          languages.forEach(lang => {
+            if (frameworkMap[lang]) {
+              agentConfig.frameworks[lang] = frameworkMap[lang];
+            }
+          });
+
+          // Write configuration file
+          const yamlStr = yaml.dump(agentConfig, {
+            flowLevel: -1,
+            indent: 2,
+            quotingType: '"',
+            forceQuotes: false
+          });
+
+          fs.writeFileSync('target_repo/.github/copilot/agent-config.yml', yamlStr);
+          console.log('✅ Generated agent-config.yml');
+          EOF
+
+          # Create basic copilot instructions file
+          cat > target_repo/.github/copilot-instructions.md << 'INSTRUCTIONS'
+          # Copilot Test Generation Instructions
+
+          ## Overview
+          This file provides instructions for the GitHub Copilot agent when generating unit tests.
+
+          ## Test Generation Guidelines
+
+          ### General Principles
+          - Write clear, maintainable tests that follow the Arrange-Act-Assert pattern
+          - Test one concept per test method
+          - Use descriptive test names that explain what is being tested
+          - Include both positive and negative test cases
+          - Mock external dependencies appropriately
+
+          ### Coverage Requirements
+          - Aim for 80% code coverage as a minimum
+          - Focus on testing public APIs and critical paths
+          - Include edge cases and boundary conditions
+
+          ### Framework-Specific Guidelines
+          - Follow the conventions of the chosen test framework
+          - Use framework features appropriately (fixtures, parametrized tests, etc.)
+          - Keep tests independent and repeatable
+
+          ### Code Quality
+          - Tests should be as readable as production code
+          - Avoid test duplication through appropriate use of setup/teardown
+          - Keep test data manageable and relevant
+          INSTRUCTIONS
+          echo "✅ Generated copilot-instructions.md"
+
       - name: Copy workflow and template files
         shell: bash
         run: |
@@ -331,6 +431,8 @@ jobs:
 
           ### Configuration Files
           - \`.github/unit-test-generator.yml\` - Main configuration with smart defaults
+          - \`.github/copilot/agent-config.yml\` - Copilot agent configuration for test generation
+          - \`.github/copilot-instructions.md\` - Instructions for the Copilot agent
           - \`package.json\` - Node.js dependencies for test generation
 
           ### Workflow Files  
