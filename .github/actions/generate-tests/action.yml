@@ -1,16 +1,21 @@
 name: 'Generate Unit Tests'
-description: 'Generates unit tests for changed source files'
+description: 'Generates unit tests for a target repository'
 inputs:
-  changed-files:
-    description: 'Space-separated list of changed files'
+  target-repo:
+    description: 'Target repository (owner/repo format)'
+    required: true
+  target-branch:
+    description: 'Target branch to create PR against'
+    required: true
+  languages:
+    description: 'Comma-separated list of languages'
+    required: true
+  github-token:
+    description: 'GitHub token for repository access'
     required: true
   openai-api-key:
     description: 'OpenAI API key for test generation'
     required: true
-  test-framework:
-    description: 'Preferred test framework'
-    required: false
-    default: 'auto'
 
 runs:
   using: 'composite'
@@ -23,27 +28,163 @@ runs:
     - name: Install dependencies
       shell: bash
       run: |
-        npm install -g typescript
-        npm install openai @octokit/rest
+        cd ${{ github.action_path }}
+        npm install
+        
+    - name: Clone target repository
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        TARGET_REPO: ${{ inputs.target-repo }}
+        TARGET_BRANCH: ${{ inputs.target-branch }}
+      run: |
+        # Create a temporary directory for the target repo
+        TEMP_DIR="/tmp/target-repo-${{ github.run_id }}"
+        mkdir -p "$TEMP_DIR"
+        
+        # Clone the target repository
+        git clone --depth 1 --branch "$TARGET_BRANCH" "https://x-access-token:${GH_TOKEN}@github.com/${TARGET_REPO}.git" "$TEMP_DIR"
+        
+        echo "TARGET_REPO_PATH=$TEMP_DIR" >> $GITHUB_ENV
+        
+    - name: Discover source files
+      shell: bash
+      env:
+        LANGUAGES: ${{ inputs.languages }}
+      run: |
+        cd "$TARGET_REPO_PATH"
+        
+        # Discover source files based on language
+        SOURCE_FILES=""
+        
+        if echo "$LANGUAGES" | grep -qi "python"; then
+          # Find Python files (excluding tests and venv)
+          PYTHON_FILES=$(find . -name "*.py" \
+            -not -path "*/tests/*" \
+            -not -path "*/test/*" \
+            -not -path "*/__pycache__/*" \
+            -not -path "*/venv/*" \
+            -not -path "*/.venv/*" \
+            -not -path "*/env/*" \
+            -not -path "*/.env/*" \
+            -not -path "*/site-packages/*" | tr '\n' ' ')
+          SOURCE_FILES="$SOURCE_FILES $PYTHON_FILES"
+        fi
+        
+        if echo "$LANGUAGES" | grep -qi "c#\|csharp"; then
+          # Find C# files (excluding test projects)
+          CSHARP_FILES=$(find . -name "*.cs" \
+            -not -path "*/Tests/*" \
+            -not -path "*/*Tests/*" \
+            -not -path "*/bin/*" \
+            -not -path "*/obj/*" | tr '\n' ' ')
+          SOURCE_FILES="$SOURCE_FILES $CSHARP_FILES"
+        fi
+        
+        if echo "$LANGUAGES" | grep -qi "java"; then
+          # Find Java files (excluding test directories)
+          JAVA_FILES=$(find . -name "*.java" \
+            -not -path "*/test/*" \
+            -not -path "*/tests/*" \
+            -not -path "*/target/*" | tr '\n' ' ')
+          SOURCE_FILES="$SOURCE_FILES $JAVA_FILES"
+        fi
+        
+        if echo "$LANGUAGES" | grep -qi "javascript"; then
+          # Find JavaScript files (excluding tests and node_modules)
+          JS_FILES=$(find . -name "*.js" \
+            -not -path "*/__tests__/*" \
+            -not -path "*/tests/*" \
+            -not -path "*/test/*" \
+            -not -path "*/node_modules/*" \
+            -not -path "*/*.test.js" \
+            -not -path "*/*.spec.js" | tr '\n' ' ')
+          SOURCE_FILES="$SOURCE_FILES $JS_FILES"
+        fi
+        
+        if echo "$LANGUAGES" | grep -qi "typescript"; then
+          # Find TypeScript files (excluding tests and node_modules)
+          TS_FILES=$(find . -name "*.ts" \
+            -not -path "*/__tests__/*" \
+            -not -path "*/tests/*" \
+            -not -path "*/test/*" \
+            -not -path "*/node_modules/*" \
+            -not -path "*/*.test.ts" \
+            -not -path "*/*.spec.ts" | tr '\n' ' ')
+          SOURCE_FILES="$SOURCE_FILES $TS_FILES"
+        fi
+        
+        # Save discovered files
+        echo "$SOURCE_FILES" | xargs -n1 | grep -v "^$" | sort -u > /tmp/source-files.txt
+        echo "Discovered $(wc -l < /tmp/source-files.txt) source files"
+        cat /tmp/source-files.txt
         
     - name: Generate Tests
       shell: bash
       env:
         OPENAI_API_KEY: ${{ inputs.openai-api-key }}
-        CHANGED_FILES: ${{ inputs.changed-files }}
-        TEST_FRAMEWORK: ${{ inputs.test-framework }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
       run: |
+        cd "$TARGET_REPO_PATH"
+        
+        # Read source files
+        CHANGED_FILES=$(cat /tmp/source-files.txt | tr '\n' ' ')
+        export CHANGED_FILES
+        
+        # Run test generation script
         node ${{ github.action_path }}/generate-tests.js
         
-    - name: Commit generated tests
+    - name: Create Pull Request
       shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        TARGET_REPO: ${{ inputs.target-repo }}
+        TARGET_BRANCH: ${{ inputs.target-branch }}
       run: |
-        git config --local user.email "action@github.com"
+        cd "$TARGET_REPO_PATH"
+        
+        # Configure git
+        git config --local user.email "unit-test-generator[bot]@users.noreply.github.com"
         git config --local user.name "Unit Test Generator"
+        
+        # Create a new branch
+        BRANCH_NAME="generated-tests-$(date +%s)"
+        git checkout -b "$BRANCH_NAME"
+        
+        # Add and commit generated tests
         git add -A
         if git diff --staged --quiet; then
           echo "No tests to commit"
-        else
-          git commit -m "🧪 Auto-generate unit tests for PR changes"
-          git push
+          exit 0
         fi
+        
+        git commit -m "🧪 Auto-generated unit tests
+
+Generated comprehensive unit tests for source files using AI-powered test generation.
+
+This PR was automatically created by the Unit Test Generator."
+        
+        # Push the branch
+        git push -u origin "$BRANCH_NAME"
+        
+        # Create PR using GitHub CLI
+        gh pr create \
+          --repo "$TARGET_REPO" \
+          --base "$TARGET_BRANCH" \
+          --head "$BRANCH_NAME" \
+          --title "🧪 Auto-generated Unit Tests" \
+          --body "## Auto-Generated Unit Tests
+
+This PR contains automatically generated unit tests for the repository.
+
+### Summary
+$(cat test-generation-summary.md 2>/dev/null || echo 'Tests have been generated for source files.')
+
+### What to Review
+- Review the generated tests for correctness
+- Verify test coverage and edge cases
+- Run tests to ensure they pass
+- Adjust test assertions as needed
+
+---
+Generated by [Unit Test Generator](https://github.com/Dave-WestNeu/unit_tests_on_pr)"
