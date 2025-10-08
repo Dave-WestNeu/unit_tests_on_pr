@@ -1,0 +1,31 @@
+# Unit Test Generator Configuration
+# Generated automatically for sample_py_needs_tests
+# Generated on: 2025-10-08
+
+enabled: true
+languages:
+  python:
+    framework: pytest
+    file_extensions:
+      - .py
+    test_directory: tests
+    test_suffix: _test.py
+    exclude_patterns:
+      - "**/*test*.py"
+      - "**/tests/**"
+      - "**/__pycache__/**"
+ai_settings:
+  model: gpt-4
+  temperature: 0.1
+  max_tokens: 4000
+  seed: 12345
+limits:
+  max_files_per_request: 20
+  min_file_size_lines: 5
+  max_file_size_lines: 500
+quality:
+  require_docstrings: true
+  mock_external_calls: true
+  include_edge_cases: true
+  generate_integration_tests: false
+

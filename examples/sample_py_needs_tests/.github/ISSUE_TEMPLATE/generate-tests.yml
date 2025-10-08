@@ -1,0 +1,69 @@
+# .github/ISSUE_TEMPLATE/generate-tests.yml
+name: "Generate Unit Tests"
+description: "Request AI-generated unit tests for your repository"
+title: "Unit Test Generation Request"
+labels: 
+  - test-generation
+  - copilot-task
+assignees: 
+  - copilot
+body:
+  - type: input
+    id: target_repo
+    attributes:
+      label: "Target Repository"
+      description: "Repository where tests should be generated"
+      placeholder: "e.g., myorg/my-app"
+    validations:
+      required: true
+
+  - type: input
+    id: target_branch
+    attributes:
+      label: "Target Branch"
+      description: "Branch to create the PR against"
+      placeholder: "e.g., main"
+      value: "main"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: languages
+    attributes:
+      label: "Programming Languages"
+      description: "Select languages to generate tests for"
+      multiple: true
+      options:
+        - C#
+        - Java
+        - JavaScript
+        - TypeScript
+        - Python
+    validations:
+      required: true
+
+  - type: textarea
+    id: file_patterns
+    attributes:
+      label: "Specific Files (Optional)"
+      description: "Specify file patterns or leave empty to analyze all files"
+      placeholder: "src/**/*.cs, lib/**/*.py"
+
+  - type: checkboxes
+    id: options
+    attributes:
+      label: "Generation Options"
+      options:
+        - label: "Include integration tests"
+        - label: "Mock external dependencies"
+        - label: "Generate performance tests"
+        - label: "Use strict type checking"
+
+  - type: input
+    id: requester_email
+    attributes:
+      label: "Your Email"
+      description: "Email for notifications"
+      placeholder: "user@company.com"
+    validations:
+      required: true
