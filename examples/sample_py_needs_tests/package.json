@@ -1,0 +1,13 @@
+{
+  "name": "unit-test-generator-setup",
+  "version": "1.0.0",
+  "description": "Dependencies for AI unit test generation",
+  "dependencies": {
+    "openai": "^4.20.0",
+    "@octokit/rest": "^20.0.0",
+    "js-yaml": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

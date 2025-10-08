@@ -28,6 +28,11 @@
 - **TypeScript** → Jest framework, __tests__/ directory
 - **Python** → pytest framework, tests/ directory
 
+## Examples
+
+See what the setup creates for your language:
+- **[Python Example](./examples/sample_py_needs_tests/)** - Complete pytest setup with documentation
+
 ## Advanced Usage (Optional)
 
 Want to customize? After setup, edit `.github/copilot/agent-config.yml` in your repository to control agent behavior, frameworks, and test generation style.
